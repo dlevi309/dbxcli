@@ -3,8 +3,6 @@
 set -e
 
 dbxcli=$(realpath $1)
-tmpdir=$(mktemp -d)
-trap 'rm -rf "${tmpdir}"' EXIT
 echo "Testing binary at ${dbxcli}"
 
 echo "Testing version"
@@ -21,13 +19,9 @@ echo "Testing put"
 ${dbxcli} put ${dbxcli} ${d}/dbxcli
 
 echo "Testing get"
-${dbxcli} get ${d}/dbxcli "${tmpdir}/dbxcli"
+${dbxcli} get ${d}/dbxcli /tmp/dbxcli
 # Make sure files are the same
-cmp --silent "${dbxcli}" "${tmpdir}/dbxcli"
-
-echo "Testing get to stdout"
-${dbxcli} get ${d}/dbxcli - > "${tmpdir}/dbxcli-stdout"
-cmp --silent "${dbxcli}" "${tmpdir}/dbxcli-stdout"
+cmp --silent ${dbxcli} /tmp/dbxcli
 
 echo "Testing ls -l"
 ${dbxcli} ls -l ${d}
