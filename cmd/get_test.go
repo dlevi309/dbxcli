@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -216,6 +217,32 @@ func TestGetDownloadWithRetry(t *testing.T) {
 	}
 	if string(got) != content {
 		t.Errorf("got %q, want %q", string(got), content)
+	}
+}
+
+func TestGetDownloadUsesUmaskPermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("file permissions are not POSIX on windows")
+	}
+	dst := filepath.Join(t.TempDir(), "downloaded.txt")
+	content := "file content here"
+	mock := &mockFilesClient{
+		downloadFn: func(arg *files.DownloadArg) (*files.FileMetadata, io.ReadCloser, error) {
+			meta := &files.FileMetadata{Metadata: files.Metadata{PathDisplay: "/test.txt"}, Size: uint64(len(content))}
+			return meta, io.NopCloser(strings.NewReader(content)), nil
+		},
+	}
+
+	if err := downloadFile(mock, "/test.txt", dst); err != nil {
+		t.Fatalf("downloadFile returned error: %v", err)
+	}
+
+	info, err := os.Stat(dst)
+	if err != nil {
+		t.Fatalf("stat downloaded file: %v", err)
+	}
+	if want := os.FileMode(0o666 &^ processUmask); info.Mode().Perm() != want {
+		t.Fatalf("mode = %v, want %v", info.Mode().Perm(), want)
 	}
 }
 

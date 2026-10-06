@@ -501,6 +501,9 @@ func downloadFileOnce(dbx filesClient, src string, dst string, errOut io.Writer)
 	if err != nil {
 		return nil, err
 	}
+	if err := os.Chmod(finalDst, os.FileMode(0o666&^processUmask)); err != nil {
+		return nil, err
+	}
 	return result.Metadata, nil
 }
 
